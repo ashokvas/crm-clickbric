@@ -12,7 +12,7 @@ export default function DashboardLayout({
         <Link href="/dashboard" className="text-lg font-semibold text-gray-900">
           LeadSync
         </Link>
-        <UserButton afterSignOutUrl="/sign-in" />
+        <UserButton />
       </header>
       <main className="flex-1 p-4 sm:p-6">{children}</main>
     </div>
