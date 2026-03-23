@@ -5,6 +5,7 @@ import { api } from "../../convex/_generated/api";
 import Link from "next/link";
 import { useState, useMemo } from "react";
 import type { Doc } from "../../convex/_generated/dataModel";
+import { generateWhatsAppUrl } from "../lib/whatsapp";
 
 type BusinessType = "real-estate" | "ai-business";
 type Status = "new" | "contacted" | "qualified" | "proposal" | "won" | "lost";
@@ -50,6 +51,17 @@ export default function DashboardPage() {
     status: statusFilter,
   });
 
+  // All leads (unfiltered) for the Today's Follow-ups panel
+  const allLeads = useQuery(api.leads.list, {});
+
+  const todayLeads = useMemo(() => {
+    if (!allLeads) return [];
+    const today = dateStr(0);
+    return allLeads
+      .filter((l) => l.nextFollowup && l.nextFollowup <= today && l.status !== "won" && l.status !== "lost")
+      .sort((a, b) => (a.nextFollowup ?? "").localeCompare(b.nextFollowup ?? ""));
+  }, [allLeads]);
+
   const filteredLeads = useMemo(() => {
     if (!leads) return leads;
     if (!followupFilter) return leads;
@@ -66,7 +78,6 @@ export default function DashboardPage() {
       return true;
     });
 
-    // Sort by follow-up date ascending when a date filter is active
     result = [...result].sort((a, b) =>
       (a.nextFollowup ?? "").localeCompare(b.nextFollowup ?? "")
     );
@@ -78,6 +89,64 @@ export default function DashboardPage() {
 
   return (
     <div className="max-w-6xl mx-auto">
+      {/* Today's Follow-ups panel */}
+      {todayLeads.length > 0 && (
+        <div className="mb-6 bg-orange-50 border border-orange-200 rounded-xl overflow-hidden">
+          <div className="px-4 py-3 border-b border-orange-200 flex items-center gap-2">
+            <span className="text-sm font-semibold text-orange-800">
+              Follow-ups due
+            </span>
+            <span className="bg-orange-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+              {todayLeads.length}
+            </span>
+          </div>
+          <div className="divide-y divide-orange-100">
+            {todayLeads.map((lead) => {
+              const waUrl = generateWhatsAppUrl(lead);
+              const today = dateStr(0);
+              const isOverdue = (lead.nextFollowup ?? "") < today;
+              return (
+                <div key={lead._id} className="flex items-center justify-between px-4 py-3 gap-3">
+                  <div className="flex-1 min-w-0">
+                    <Link
+                      href={`/dashboard/leads/${lead._id}`}
+                      className="font-medium text-gray-900 text-sm hover:underline"
+                    >
+                      {lead.name}
+                    </Link>
+                    <div className="flex gap-2 text-xs text-gray-500 mt-0.5">
+                      {lead.phone && <span>{lead.phone}</span>}
+                      {lead.requirement && (
+                        <>
+                          <span>·</span>
+                          <span className="truncate">{lead.requirement}</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className={`text-xs font-medium ${isOverdue ? "text-red-600" : "text-orange-600"}`}>
+                      {isOverdue ? `Overdue (${lead.nextFollowup})` : "Today"}
+                    </span>
+                    {waUrl && (
+                      <a
+                        href={waUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="bg-green-500 hover:bg-green-600 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-colors"
+                      >
+                        WhatsApp
+                      </a>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Top bar */}
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-xl font-semibold text-gray-900">Leads</h1>
@@ -217,6 +286,7 @@ function followupLabel(date: string | undefined, filter: FollowupFilter): { text
 
 function LeadRow({ lead, followupFilter }: { lead: Doc<"leads">; followupFilter: FollowupFilter }) {
   const fu = followupLabel(lead.nextFollowup, followupFilter);
+  const waUrl = generateWhatsAppUrl(lead);
   return (
     <tr
       className="hover:bg-gray-50 cursor-pointer"
@@ -226,7 +296,22 @@ function LeadRow({ lead, followupFilter }: { lead: Doc<"leads">; followupFilter:
         <div className="font-medium text-gray-900">{lead.name}</div>
         {lead.email && <div className="text-gray-400 text-xs">{lead.email}</div>}
       </td>
-      <td className="px-4 py-3 text-gray-600">{lead.phone ?? "-"}</td>
+      <td className="px-4 py-3">
+        <div className="flex items-center gap-2">
+          <span className="text-gray-600">{lead.phone ?? "-"}</span>
+          {waUrl && (
+            <a
+              href={waUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="bg-green-500 hover:bg-green-600 text-white text-xs font-medium px-2 py-0.5 rounded transition-colors"
+            >
+              WA
+            </a>
+          )}
+        </div>
+      </td>
       <td className="px-4 py-3 text-gray-600">
         {lead.businessType === "real-estate" ? "Real Estate" : "AI Business"}
       </td>
@@ -249,6 +334,7 @@ function LeadRow({ lead, followupFilter }: { lead: Doc<"leads">; followupFilter:
 
 function LeadCard({ lead, followupFilter }: { lead: Doc<"leads">; followupFilter: FollowupFilter }) {
   const fu = followupLabel(lead.nextFollowup, followupFilter);
+  const waUrl = generateWhatsAppUrl(lead);
   return (
     <div
       className="bg-white rounded-xl border border-gray-200 p-4 cursor-pointer active:bg-gray-50"
@@ -280,6 +366,19 @@ function LeadCard({ lead, followupFilter }: { lead: Doc<"leads">; followupFilter
       </div>
       {lead.requirement && (
         <p className="text-sm text-gray-600 mt-2 line-clamp-2">{lead.requirement}</p>
+      )}
+      {waUrl && (
+        <div className="mt-3 pt-3 border-t border-gray-100">
+          <a
+            href={waUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="inline-flex items-center bg-green-500 hover:bg-green-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+          >
+            WhatsApp
+          </a>
+        </div>
       )}
     </div>
   );

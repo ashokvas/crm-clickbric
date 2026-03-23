@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useState, useRef } from "react";
 import type { Id } from "../../../../convex/_generated/dataModel";
+import { generateWhatsAppUrl } from "../../../lib/whatsapp";
 
 const STATUS_OPTIONS = [
   { value: "new", label: "New" },
@@ -275,7 +276,23 @@ export default function LeadDetailPage() {
           {lead.businessType === "real-estate" ? "Real Estate" : "AI Business"}
         </Row>
         <Row label="Source">{SOURCE_LABELS[lead.source] ?? lead.source}</Row>
-        {lead.phone && <Row label="Phone">{lead.phone}</Row>}
+        {lead.phone && (
+          <Row label="Phone">
+            <div className="flex items-center gap-3">
+              <span>{lead.phone}</span>
+              {generateWhatsAppUrl(lead) && (
+                <a
+                  href={generateWhatsAppUrl(lead)!}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-green-500 hover:bg-green-600 text-white text-xs font-medium px-3 py-1 rounded-lg transition-colors"
+                >
+                  WhatsApp
+                </a>
+              )}
+            </div>
+          </Row>
+        )}
         {lead.email && <Row label="Email">{lead.email}</Row>}
         {lead.requirement && (
           <Row label="Requirement">{lead.requirement}</Row>
