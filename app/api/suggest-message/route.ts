@@ -9,6 +9,7 @@ export async function POST(req: NextRequest) {
     status: string;
     requirement?: string;
     lastInteractionNotes: string;
+    lastInteractionDate?: string;
   };
 
   try {
@@ -17,7 +18,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const { leadName, status, requirement, lastInteractionNotes } = body;
+  const { leadName, status, requirement, lastInteractionNotes, lastInteractionDate } = body;
 
   if (!leadName || !lastInteractionNotes) {
     return NextResponse.json(
@@ -26,27 +27,29 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const prompt = `You are helping Ashok, a real estate broker at Clickbric Properties in India, write a short WhatsApp follow-up message to a lead.
+  // Extract first name only
+  const firstName = leadName.trim().split(" ")[0];
 
-Lead details:
-- Name: ${leadName}
-- Status: ${status}
-${requirement ? `- Requirement: ${requirement}` : ""}
+  const prompt = `You are Ashok, a real estate broker at Clickbric Properties in India. You need to send a WhatsApp follow-up message to ${firstName}.
 
-Last interaction notes:
+Here is what happened in your last interaction with ${firstName}${lastInteractionDate ? ` on ${lastInteractionDate}` : ""}:
+
+---
 ${lastInteractionNotes}
+---
 
-Write a short, casual WhatsApp message from Ashok to ${leadName} as the next follow-up, based on the last interaction above.
+Your task: Write the WhatsApp message you will send ${firstName} now, as a direct follow-up to that interaction.
 
-Rules:
-- Address the lead by first name only
-- Keep it under 3 sentences
-- Casual and conversational, not formal or corporate
-- Reference something specific from the last interaction notes
-- Do not use emojis
-- Do not use phrases like "I hope this message finds you well"
-- Sign off as "Ashok"
-- Write only the message text, nothing else`;
+The message must:
+- Pick up exactly where the last interaction left off -- address what was discussed, promised, or left unresolved
+- Be specific to the notes above, not generic
+- Be 2-3 sentences max
+- Sound like a natural WhatsApp message, casual and direct
+- Address ${firstName} by first name at the start
+- End with "- Ashok"
+${requirement ? `\nContext: ${firstName} is looking for ${requirement}.` : ""}
+
+Write only the message text. No explanation, no commentary.`;
 
   try {
     const response = await client.messages.create({

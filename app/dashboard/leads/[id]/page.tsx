@@ -90,6 +90,9 @@ export default function LeadDetailPage() {
           status: lead.status,
           requirement: lead.requirement,
           lastInteractionNotes: lastInteraction.notes,
+          lastInteractionDate: new Date(lastInteraction.datetime).toLocaleDateString("en-IN", {
+            day: "2-digit", month: "short", year: "numeric",
+          }),
         }),
       });
       const data = await res.json();
