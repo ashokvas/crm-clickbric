@@ -1,36 +1,108 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# LeadSync CRM
 
-## Getting Started
+CRM for Clickbric Properties (real estate) and Ashok's AI business.
+Live at: https://crm.clickbric.com
 
-First, run the development server:
+## Stack
+
+- **Framework:** Next.js 16 (App Router)
+- **Auth:** Clerk v7
+- **Database:** Convex (real-time, serverless)
+- **Deployment:** Coolify on Contabo VPS, auto-deploy from GitHub (`ashokvas/crm-clickbric`)
+
+---
+
+## Build Status
+
+### Done
+
+- [x] **Phase 1 -- Foundation**
+  - Clerk auth (sign in / sign up / sign out)
+  - Convex schema: leads, interactions, emailLogs tables
+  - Lead dashboard with filters (business type, status, follow-up date)
+  - Add lead form (manual entry, mobile-friendly)
+  - Lead detail page -- view, edit, delete
+  - Interaction timeline -- log calls/meetings, auto-updates next follow-up date
+  - Mobile responsive (table on desktop, cards on mobile)
+
+- [x] **Phase 2 -- Lead capture webhooks**
+  - `POST /api/webhooks/housing` -- Housing.com lead capture
+  - `POST /api/webhooks/google-ads` -- Google Ads Lead Form Extensions
+  - Webhook secret validation via `?secret=` query param
+
+- [x] **Phase 3 -- WhatsApp quick-send (replaced bulk email)**
+  - `app/lib/whatsapp.ts` -- generates wa.me click-to-chat URLs with pre-written messages
+  - "Follow-ups due" panel at top of dashboard (overdue + today's leads)
+  - WhatsApp button on dashboard table rows (desktop) and cards (mobile)
+  - WhatsApp button on lead detail page
+  - Messages auto-generated based on lead status
+
+- [x] **Phase 4 -- Deployment**
+  - Live at crm.clickbric.com
+  - Auto-deploy via GitHub Action → Coolify API
+
+---
+
+### To Do
+
+- [ ] **Test webhooks end-to-end**
+  - Connect Housing.com listing to webhook URL: `https://crm.clickbric.com/api/webhooks/housing?secret=YOUR_SECRET`
+  - Connect Google Ads Lead Form to webhook URL: `https://crm.clickbric.com/api/webhooks/google-ads?secret=YOUR_SECRET`
+  - Verify leads appear in dashboard after form submission
+
+- [ ] **AI-suggested WhatsApp messages**
+  - Replace static status-based messages with Claude-generated messages
+  - Claude reads the full interaction history and generates a contextual follow-up
+  - Shown as a preview the user can edit before opening WhatsApp
+
+- [ ] **Lead notes / tags**
+  - Free-text notes field on lead detail (separate from interaction log)
+  - Optional: tags for filtering (e.g. "budget-2cr", "3bhk", "urgent")
+
+- [ ] **Search**
+  - Search leads by name, phone, email, or requirement
+  - Simple client-side filter or Convex full-text search
+
+- [ ] **Lead import**
+  - CSV upload to bulk-import leads
+  - Map columns: name, phone, email, requirement, source
+
+---
+
+### Future / Backlog
+
+- Push notifications -- daily digest of leads due today (PWA push or WhatsApp to Ashok)
+- Bulk WhatsApp outreach -- generate messages for a filtered list, open them one by one
+- Property listing attachment -- attach a PDF brochure or link to a lead's WhatsApp message
+- Lead scoring -- auto-score leads based on budget, requirement match, engagement
+- Convex production upgrade -- currently on dev instance; move to prod before scaling
+
+---
+
+## Local Dev
 
 ```bash
+# Terminal 1 -- Convex dev server
+npx convex dev
+
+# Terminal 2 -- Next.js dev server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+App runs at http://localhost:3000
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Environment Variables
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+See `.env.local` (not committed). Required keys:
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
+CLERK_SECRET_KEY=
+NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
+NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
+NEXT_PUBLIC_CLERK_AFTER_SIGN_OUT_URL=/sign-in
+CONVEX_DEPLOYMENT=
+NEXT_PUBLIC_CONVEX_URL=
+HOUSING_WEBHOOK_SECRET=
+GOOGLE_ADS_WEBHOOK_SECRET=
+```
