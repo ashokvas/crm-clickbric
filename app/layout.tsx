@@ -9,7 +9,7 @@ const geist = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "LeadSync",
+  title: "LeadSync CRM",
   description: "CRM for Real Estate and AI Business leads",
 };
 
