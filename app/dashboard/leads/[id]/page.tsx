@@ -6,7 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useState, useRef } from "react";
 import type { Id } from "../../../../convex/_generated/dataModel";
-import { generateWhatsAppUrl } from "../../../lib/whatsapp";
+import { formatPhoneForWhatsApp } from "../../../lib/whatsapp";
 
 const STATUS_OPTIONS = [
   { value: "new", label: "New" },
@@ -67,6 +67,46 @@ export default function LeadDetailPage() {
   const [loggingInteraction, setLoggingInteraction] = useState(false);
   const [interactionSaving, setInteractionSaving] = useState(false);
   const notesRef = useRef<HTMLTextAreaElement>(null);
+
+  const [suggestedMessage, setSuggestedMessage] = useState<string | null>(null);
+  const [suggestLoading, setSuggestLoading] = useState(false);
+  const [suggestError, setSuggestError] = useState<string | null>(null);
+
+  async function handleSuggestMessage() {
+    if (!lead || !interactions) return;
+    const lastInteraction = interactions[0]; // interactions are ordered desc
+    if (!lastInteraction) return;
+
+    setSuggestLoading(true);
+    setSuggestError(null);
+    setSuggestedMessage(null);
+
+    try {
+      const res = await fetch("/api/suggest-message", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          leadName: lead.name,
+          status: lead.status,
+          requirement: lead.requirement,
+          lastInteractionNotes: lastInteraction.notes,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed");
+      setSuggestedMessage(data.message);
+    } catch (err) {
+      setSuggestError(err instanceof Error ? err.message : "Failed to generate message");
+    } finally {
+      setSuggestLoading(false);
+    }
+  }
+
+  function buildWhatsAppUrl(message: string) {
+    if (!lead?.phone) return null;
+    const phone = formatPhoneForWhatsApp(lead.phone);
+    return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+  }
 
   if (lead === undefined || interactions === undefined) {
     return (
@@ -278,17 +318,59 @@ export default function LeadDetailPage() {
         <Row label="Source">{SOURCE_LABELS[lead.source] ?? lead.source}</Row>
         {lead.phone && (
           <Row label="Phone">
-            <div className="flex items-center gap-3">
-              <span>{lead.phone}</span>
-              {generateWhatsAppUrl(lead) && (
-                <a
-                  href={generateWhatsAppUrl(lead)!}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="bg-green-500 hover:bg-green-600 text-white text-xs font-medium px-3 py-1 rounded-lg transition-colors"
-                >
-                  WhatsApp
-                </a>
+            <div className="flex flex-col gap-2 w-full">
+              <div className="flex items-center gap-3">
+                <span>{lead.phone}</span>
+                {interactions && interactions.length > 0 && (
+                  <button
+                    onClick={handleSuggestMessage}
+                    disabled={suggestLoading}
+                    className="bg-green-500 hover:bg-green-600 disabled:opacity-50 text-white text-xs font-medium px-3 py-1 rounded-lg transition-colors"
+                  >
+                    {suggestLoading ? "Thinking..." : "Suggest WhatsApp message"}
+                  </button>
+                )}
+                {interactions && interactions.length === 0 && lead.phone && (
+                  <span className="text-xs text-gray-400">Log an interaction to get AI message suggestions</span>
+                )}
+              </div>
+              {suggestError && (
+                <p className="text-xs text-red-500">{suggestError}</p>
+              )}
+              {suggestedMessage !== null && (
+                <div className="mt-1 space-y-2">
+                  <textarea
+                    value={suggestedMessage}
+                    onChange={(e) => setSuggestedMessage(e.target.value)}
+                    rows={4}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900 bg-white resize-none"
+                  />
+                  <div className="flex gap-2">
+                    {buildWhatsAppUrl(suggestedMessage) && (
+                      <a
+                        href={buildWhatsAppUrl(suggestedMessage)!}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="bg-green-500 hover:bg-green-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+                      >
+                        Open WhatsApp
+                      </a>
+                    )}
+                    <button
+                      onClick={handleSuggestMessage}
+                      disabled={suggestLoading}
+                      className="text-sm text-gray-500 hover:text-gray-700 px-3 py-2 disabled:opacity-50"
+                    >
+                      Regenerate
+                    </button>
+                    <button
+                      onClick={() => setSuggestedMessage(null)}
+                      className="text-sm text-gray-400 hover:text-gray-600 px-3 py-2"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                </div>
               )}
             </div>
           </Row>
