@@ -45,6 +45,7 @@ export default function DashboardPage() {
   const [businessFilter, setBusinessFilter] = useState<BusinessType | undefined>(undefined);
   const [statusFilter, setStatusFilter] = useState<Status | undefined>(undefined);
   const [followupFilter, setFollowupFilter] = useState<FollowupFilter>("");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const leads = useQuery(api.leads.list, {
     businessType: businessFilter,
@@ -85,7 +86,20 @@ export default function DashboardPage() {
     return result;
   }, [leads, followupFilter]);
 
-  const hasActiveFilter = businessFilter || statusFilter || followupFilter;
+  const searchFiltered = useMemo(() => {
+    if (!filteredLeads) return filteredLeads;
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return filteredLeads;
+    return filteredLeads.filter(
+      (l) =>
+        l.name.toLowerCase().includes(q) ||
+        (l.phone ?? "").toLowerCase().includes(q) ||
+        (l.email ?? "").toLowerCase().includes(q) ||
+        (l.requirement ?? "").toLowerCase().includes(q)
+    );
+  }, [filteredLeads, searchQuery]);
+
+  const hasActiveFilter = businessFilter || statusFilter || followupFilter || searchQuery;
 
   return (
     <div className="max-w-6xl mx-auto">
@@ -158,6 +172,17 @@ export default function DashboardPage() {
         </Link>
       </div>
 
+      {/* Search */}
+      <div className="mb-3">
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search by name, phone, email, or requirement..."
+          className="w-full sm:w-96 text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-900"
+        />
+      </div>
+
       {/* Filters */}
       <div className="flex flex-wrap gap-3 mb-4">
         <select
@@ -205,6 +230,7 @@ export default function DashboardPage() {
               setBusinessFilter(undefined);
               setStatusFilter(undefined);
               setFollowupFilter("");
+              setSearchQuery("");
             }}
             className="text-sm text-gray-500 hover:text-gray-900 px-2"
           >
@@ -214,19 +240,19 @@ export default function DashboardPage() {
       </div>
 
       {/* Lead count */}
-      {filteredLeads !== undefined && (
+      {searchFiltered !== undefined && (
         <p className="text-sm text-gray-500 mb-3">
-          {filteredLeads.length} {filteredLeads.length === 1 ? "lead" : "leads"}
+          {searchFiltered.length} {searchFiltered.length === 1 ? "lead" : "leads"}
         </p>
       )}
 
       {/* Loading */}
-      {filteredLeads === undefined && (
+      {searchFiltered === undefined && (
         <div className="text-center py-16 text-gray-400">Loading...</div>
       )}
 
       {/* Empty state */}
-      {filteredLeads !== undefined && filteredLeads.length === 0 && (
+      {searchFiltered !== undefined && searchFiltered.length === 0 && (
         <div className="text-center py-16 text-gray-400">
           <p className="text-lg mb-2">No leads found</p>
           {!hasActiveFilter && (
@@ -240,7 +266,7 @@ export default function DashboardPage() {
       )}
 
       {/* Desktop table */}
-      {filteredLeads && filteredLeads.length > 0 && (
+      {searchFiltered && searchFiltered.length > 0 && (
         <>
           <div className="hidden sm:block bg-white rounded-xl border border-gray-200 overflow-hidden">
             <table className="w-full text-sm">
@@ -255,7 +281,7 @@ export default function DashboardPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {filteredLeads.map((lead) => (
+                {searchFiltered.map((lead) => (
                   <LeadRow key={lead._id} lead={lead} followupFilter={followupFilter} />
                 ))}
               </tbody>
@@ -264,7 +290,7 @@ export default function DashboardPage() {
 
           {/* Mobile cards */}
           <div className="sm:hidden space-y-3">
-            {filteredLeads.map((lead) => (
+            {searchFiltered.map((lead) => (
               <LeadCard key={lead._id} lead={lead} followupFilter={followupFilter} />
             ))}
           </div>
