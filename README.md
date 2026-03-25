@@ -50,10 +50,13 @@ Live at: https://crm.clickbric.com
   - Connect Google Ads Lead Form to webhook URL: `https://crm.clickbric.com/api/webhooks/google-ads?secret=YOUR_SECRET`
   - Verify leads appear in dashboard after form submission
 
-- [ ] **AI-suggested WhatsApp messages**
-  - Replace static status-based messages with Claude-generated messages
-  - Claude reads the full interaction history and generates a contextual follow-up
-  - Shown as a preview the user can edit before opening WhatsApp
+- [x] **AI-suggested WhatsApp messages**
+  - Claude generates contextual follow-up based on last interaction notes and date
+  - Editable textarea preview before opening WhatsApp
+  - Regenerate and Dismiss options
+
+- [x] **Edit interactions**
+  - Inline edit form on each interaction card (notes, date/time, next follow-up)
 
 - [ ] **Lead notes / tags**
   - Free-text notes field on lead detail (separate from interaction log)
