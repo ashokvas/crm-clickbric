@@ -59,7 +59,11 @@ export default function LeadDetailPage() {
   const updateLead = useMutation(api.leads.update);
   const removeLead = useMutation(api.leads.remove);
   const createInteraction = useMutation(api.interactions.create);
+  const updateInteraction = useMutation(api.interactions.update);
   const removeInteraction = useMutation(api.interactions.remove);
+
+  const [editingInteractionId, setEditingInteractionId] = useState<string | null>(null);
+  const [interactionEditSaving, setInteractionEditSaving] = useState(false);
 
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -179,6 +183,23 @@ export default function LeadDetailPage() {
     form.reset();
     setInteractionSaving(false);
     setLoggingInteraction(false);
+  }
+
+  async function handleUpdateInteraction(e: React.FormEvent<HTMLFormElement>, id: string) {
+    e.preventDefault();
+    setInteractionEditSaving(true);
+    const form = e.currentTarget;
+    const data = new FormData(form);
+    const datetimeStr = data.get("datetime") as string;
+    const datetime = datetimeStr ? new Date(datetimeStr).getTime() : Date.now();
+    await updateInteraction({
+      id: id as Parameters<typeof updateInteraction>[0]["id"],
+      datetime,
+      notes: data.get("notes") as string,
+      nextFollowup: (data.get("nextFollowup") as string) || undefined,
+    });
+    setInteractionEditSaving(false);
+    setEditingInteractionId(null);
   }
 
   if (editing) {
@@ -479,33 +500,95 @@ export default function LeadDetailPage() {
         )}
 
         <div className="space-y-3">
-          {interactions.map((interaction) => (
-            <div
-              key={interaction._id}
-              className="bg-white rounded-xl border border-gray-200 p-4"
-            >
-              <div className="flex items-start justify-between mb-2">
-                <div className="text-xs font-medium text-gray-400">
-                  {formatDateTime(interaction.datetime)}
+          {interactions.map((interaction) =>
+            editingInteractionId === interaction._id ? (
+              <form
+                key={interaction._id}
+                onSubmit={(e) => handleUpdateInteraction(e, interaction._id)}
+                className="bg-white rounded-xl border border-gray-900 p-4 space-y-4"
+              >
+                <div className="grid grid-cols-2 gap-4">
+                  <Field label="Date & Time" required>
+                    <input
+                      name="datetime"
+                      type="datetime-local"
+                      defaultValue={toLocalDatetimeValue(interaction.datetime)}
+                      required
+                      className={inputClass}
+                    />
+                  </Field>
+                  <Field label="Next Follow-up">
+                    <input
+                      name="nextFollowup"
+                      type="date"
+                      defaultValue={interaction.nextFollowup ?? ""}
+                      className={inputClass}
+                    />
+                  </Field>
                 </div>
-                <button
-                  onClick={() => removeInteraction({ id: interaction._id })}
-                  className="text-xs text-gray-300 hover:text-red-400 transition-colors"
-                  title="Delete"
-                >
-                  ✕
-                </button>
+                <Field label="Discussion Notes" required>
+                  <textarea
+                    name="notes"
+                    rows={4}
+                    required
+                    defaultValue={interaction.notes}
+                    className={inputClass}
+                    autoFocus
+                  />
+                </Field>
+                <div className="flex gap-3">
+                  <button
+                    type="submit"
+                    disabled={interactionEditSaving}
+                    className="bg-gray-900 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50"
+                  >
+                    {interactionEditSaving ? "Saving..." : "Save"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditingInteractionId(null)}
+                    className="text-sm text-gray-500 hover:text-gray-700 px-4 py-2"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div
+                key={interaction._id}
+                className="bg-white rounded-xl border border-gray-200 p-4"
+              >
+                <div className="flex items-start justify-between mb-2">
+                  <div className="text-xs font-medium text-gray-400">
+                    {formatDateTime(interaction.datetime)}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => setEditingInteractionId(interaction._id)}
+                      className="text-xs text-gray-400 hover:text-gray-700 transition-colors"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => removeInteraction({ id: interaction._id })}
+                      className="text-xs text-gray-300 hover:text-red-400 transition-colors"
+                      title="Delete"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
+                <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                  {interaction.notes}
+                </p>
+                {interaction.nextFollowup && (
+                  <div className="mt-2 text-xs text-orange-600 font-medium">
+                    Next follow-up: {interaction.nextFollowup}
+                  </div>
+                )}
               </div>
-              <p className="text-sm text-gray-700 whitespace-pre-wrap">
-                {interaction.notes}
-              </p>
-              {interaction.nextFollowup && (
-                <div className="mt-2 text-xs text-orange-600 font-medium">
-                  Next follow-up: {interaction.nextFollowup}
-                </div>
-              )}
-            </div>
-          ))}
+            )
+          )}
         </div>
       </div>
 

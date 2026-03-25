@@ -29,6 +29,25 @@ export const create = mutation({
   },
 });
 
+export const update = mutation({
+  args: {
+    id: v.id("interactions"),
+    datetime: v.number(),
+    notes: v.string(),
+    nextFollowup: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const { id, ...fields } = args;
+    const interaction = await ctx.db.get(id);
+    if (!interaction) return;
+    await ctx.db.patch(id, fields);
+    // Keep lead's nextFollowup in sync if this interaction sets one
+    if (fields.nextFollowup) {
+      await ctx.db.patch(interaction.leadId, { nextFollowup: fields.nextFollowup });
+    }
+  },
+});
+
 export const remove = mutation({
   args: { id: v.id("interactions") },
   handler: async (ctx, args) => {
