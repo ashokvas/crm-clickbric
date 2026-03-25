@@ -72,6 +72,10 @@ export default function LeadDetailPage() {
   const [interactionSaving, setInteractionSaving] = useState(false);
   const notesRef = useRef<HTMLTextAreaElement>(null);
 
+  const [editingNotes, setEditingNotes] = useState(false);
+  const [notesDraft, setNotesDraft] = useState("");
+  const [notesSaving, setNotesSaving] = useState(false);
+
   const [suggestedMessage, setSuggestedMessage] = useState<string | null>(null);
   const [suggestLoading, setSuggestLoading] = useState(false);
   const [suggestError, setSuggestError] = useState<string | null>(null);
@@ -200,6 +204,13 @@ export default function LeadDetailPage() {
     });
     setInteractionEditSaving(false);
     setEditingInteractionId(null);
+  }
+
+  async function handleSaveNotes() {
+    setNotesSaving(true);
+    await updateLead({ id: lead!._id, notes: notesDraft || undefined });
+    setNotesSaving(false);
+    setEditingNotes(false);
   }
 
   if (editing) {
@@ -410,16 +421,55 @@ export default function LeadDetailPage() {
             </span>
           </Row>
         )}
-        {lead.notes && (
-          <div className="px-4 py-3">
-            <div className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">
+        <div className="px-4 py-3">
+          <div className="flex items-center justify-between mb-1">
+            <div className="text-xs font-medium text-gray-400 uppercase tracking-wide">
               Notes
             </div>
-            <p className="text-sm text-gray-700 whitespace-pre-wrap">
-              {lead.notes}
-            </p>
+            {!editingNotes && (
+              <button
+                onClick={() => {
+                  setNotesDraft(lead.notes ?? "");
+                  setEditingNotes(true);
+                }}
+                className="text-xs text-gray-400 hover:text-gray-700 transition-colors"
+              >
+                {lead.notes ? "Edit" : "+ Add"}
+              </button>
+            )}
           </div>
-        )}
+          {editingNotes ? (
+            <div className="space-y-2">
+              <textarea
+                value={notesDraft}
+                onChange={(e) => setNotesDraft(e.target.value)}
+                rows={4}
+                autoFocus
+                placeholder="Add notes about this lead..."
+                className={inputClass + " resize-none"}
+              />
+              <div className="flex gap-3">
+                <button
+                  onClick={handleSaveNotes}
+                  disabled={notesSaving}
+                  className="bg-gray-900 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50"
+                >
+                  {notesSaving ? "Saving..." : "Save"}
+                </button>
+                <button
+                  onClick={() => setEditingNotes(false)}
+                  className="text-sm text-gray-500 hover:text-gray-700 px-4 py-2"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : lead.notes ? (
+            <p className="text-sm text-gray-700 whitespace-pre-wrap">{lead.notes}</p>
+          ) : (
+            <p className="text-sm text-gray-400">No notes yet.</p>
+          )}
+        </div>
       </div>
 
       {/* Interaction log section */}
