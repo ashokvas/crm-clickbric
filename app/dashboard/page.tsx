@@ -333,8 +333,8 @@ export default function DashboardPage() {
   );
 }
 
-function followupLabel(date: string | undefined, filter: FollowupFilter): { text: string; urgent: boolean } {
-  if (!date) return { text: "-", urgent: false };
+function followupLabel(date: string | undefined, status: string, filter: FollowupFilter): { text: string; urgent: boolean } {
+  if (!date || status === "won" || status === "lost") return { text: "-", urgent: false };
   const today = dateStr(0);
   const tomorrow = dateStr(1);
   if (date < today) return { text: `Overdue (${date})`, urgent: true };
@@ -344,7 +344,7 @@ function followupLabel(date: string | undefined, filter: FollowupFilter): { text
 }
 
 function LeadRow({ lead, followupFilter }: { lead: Doc<"leads">; followupFilter: FollowupFilter }) {
-  const fu = followupLabel(lead.nextFollowup, followupFilter);
+  const fu = followupLabel(lead.nextFollowup, lead.status, followupFilter);
   const waUrl = generateWhatsAppUrl(lead);
   return (
     <tr
@@ -392,7 +392,7 @@ function LeadRow({ lead, followupFilter }: { lead: Doc<"leads">; followupFilter:
 }
 
 function LeadCard({ lead, followupFilter }: { lead: Doc<"leads">; followupFilter: FollowupFilter }) {
-  const fu = followupLabel(lead.nextFollowup, followupFilter);
+  const fu = followupLabel(lead.nextFollowup, lead.status, followupFilter);
   const waUrl = generateWhatsAppUrl(lead);
   return (
     <div
