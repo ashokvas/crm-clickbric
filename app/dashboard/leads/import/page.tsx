@@ -5,6 +5,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import Link from "next/link";
 import Papa from "papaparse";
+import * as XLSX from "xlsx";
 
 const FIELD_LABELS: Record<string, string> = {
   name: "Name *",
@@ -18,6 +19,20 @@ const ALL_FIELDS = ["name", "phone", "email", "requirement"];
 
 type Row = Record<string, string>;
 type Mapping = Record<string, string>; // field -> csv column
+
+function autoGuessMapping(headers: string[]): Mapping {
+  const mapping: Mapping = {};
+  for (const field of ALL_FIELDS) {
+    const match = headers.find((h) =>
+      h.toLowerCase().includes(field) ||
+      (field === "name" && h.toLowerCase().includes("contact")) ||
+      (field === "phone" && (h.toLowerCase().includes("mobile") || h.toLowerCase().includes("number"))) ||
+      (field === "requirement" && (h.toLowerCase().includes("req") || h.toLowerCase().includes("property") || h.toLowerCase().includes("looking")))
+    );
+    if (match) mapping[field] = match;
+  }
+  return mapping;
+}
 
 export default function ImportPage() {
   const [headers, setHeaders] = useState<string[]>([]);
@@ -37,29 +52,39 @@ export default function ImportPage() {
     setResult(null);
     setError(null);
 
-    Papa.parse<Row>(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: (results) => {
-        const csvHeaders = results.meta.fields ?? [];
-        setHeaders(csvHeaders);
-        setRows(results.data);
+    const isExcel = file.name.endsWith(".xlsx") || file.name.endsWith(".xls");
 
-        // Auto-map columns by guessing from header names
-        const autoMapping: Mapping = {};
-        for (const field of ALL_FIELDS) {
-          const match = csvHeaders.find((h) =>
-            h.toLowerCase().includes(field) ||
-            (field === "name" && h.toLowerCase().includes("contact")) ||
-            (field === "phone" && (h.toLowerCase().includes("mobile") || h.toLowerCase().includes("number"))) ||
-            (field === "requirement" && (h.toLowerCase().includes("req") || h.toLowerCase().includes("property") || h.toLowerCase().includes("looking")))
-          );
-          if (match) autoMapping[field] = match;
+    if (isExcel) {
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        try {
+          const data = new Uint8Array(evt.target?.result as ArrayBuffer);
+          const workbook = XLSX.read(data, { type: "array" });
+          const sheet = workbook.Sheets[workbook.SheetNames[0]];
+          const parsed: Row[] = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+          if (parsed.length === 0) { setError("No data found in the file."); return; }
+          const fileHeaders = Object.keys(parsed[0]);
+          setHeaders(fileHeaders);
+          setRows(parsed);
+          setMapping(autoGuessMapping(fileHeaders));
+        } catch {
+          setError("Could not read Excel file. Make sure it is a valid .xlsx file.");
         }
-        setMapping(autoMapping);
-      },
-      error: (err) => setError(`Could not parse file: ${err.message}`),
-    });
+      };
+      reader.readAsArrayBuffer(file);
+    } else {
+      Papa.parse<Row>(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: (results) => {
+          const csvHeaders = results.meta.fields ?? [];
+          setHeaders(csvHeaders);
+          setRows(results.data);
+          setMapping(autoGuessMapping(csvHeaders));
+        },
+        error: (err) => setError(`Could not parse file: ${err.message}`),
+      });
+    }
   }
 
   async function handleImport() {
@@ -128,11 +153,11 @@ export default function ImportPage() {
 
       {/* Step 1: Upload */}
       <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4">
-        <h2 className="text-sm font-semibold text-gray-700 mb-3">1. Upload CSV file</h2>
+        <h2 className="text-sm font-semibold text-gray-700 mb-3">1. Upload CSV or Excel file</h2>
         <input
           ref={fileRef}
           type="file"
-          accept=".csv"
+          accept=".csv,.xlsx,.xls"
           onChange={handleFile}
           className="text-sm text-gray-700 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-gray-900 file:text-white hover:file:bg-gray-700 cursor-pointer"
         />
