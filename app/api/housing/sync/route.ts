@@ -32,8 +32,10 @@ export async function POST(req: NextRequest) {
   // Default to last 7 days if no prior sync
   const syncState = await convex.query(api.syncState.get, { source: "housing" });
   const now = Math.floor(Date.now() / 1000);
-  const sevenDaysAgo = now - 7 * 24 * 60 * 60;
-  const startDate = syncState ? Math.floor(syncState.lastSyncAt / 1000) : sevenDaysAgo;
+  const twoDaysAgo = now - 2 * 24 * 60 * 60;
+  // Housing.com restricts date range to max 2 days -- cap start_date accordingly
+  const rawStart = syncState ? Math.floor(syncState.lastSyncAt / 1000) : twoDaysAgo;
+  const startDate = Math.max(rawStart, twoDaysAgo);
 
   // Generate HMAC SHA256 hash of current_time using the API key
   const currentTime = String(now);
@@ -53,11 +55,21 @@ export async function POST(req: NextRequest) {
   let housingData: { data?: HousingLead[]; apiErrors?: unknown };
   try {
     const res = await fetch(housingUrl);
-    housingData = await res.json();
-    if (!res.ok || housingData.apiErrors) {
-      console.error("Housing.com API error:", housingData.apiErrors);
+    const rawText = await res.text();
+    console.log("Housing.com raw response:", rawText);
+    try {
+      housingData = JSON.parse(rawText);
+    } catch {
       return NextResponse.json(
-        { error: "Housing.com API returned an error", details: housingData.apiErrors },
+        { error: `Housing.com returned non-JSON: ${rawText.slice(0, 300)}` },
+        { status: 502 }
+      );
+    }
+    if (!res.ok || housingData.apiErrors) {
+      const details = JSON.stringify(housingData.apiErrors ?? housingData);
+      console.error("Housing.com API error:", details);
+      return NextResponse.json(
+        { error: `Housing.com error: ${details}` },
         { status: 502 }
       );
     }
