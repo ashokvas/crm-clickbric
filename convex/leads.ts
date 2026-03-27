@@ -60,6 +60,14 @@ export const get = query({
   },
 });
 
+export const getByPhone = query({
+  args: { phone: v.string() },
+  handler: async (ctx, args) => {
+    const all = await ctx.db.query("leads").collect();
+    return all.find((l) => l.phone === args.phone) ?? null;
+  },
+});
+
 export const create = mutation({
   args: {
     name: v.string(),

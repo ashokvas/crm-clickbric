@@ -43,4 +43,9 @@ export default defineSchema({
     sentAt: v.number(),
     status: v.union(v.literal("sent"), v.literal("failed")),
   }).index("by_lead", ["leadId"]),
+
+  syncState: defineTable({
+    source: v.string(),
+    lastSyncAt: v.number(),
+  }).index("by_source", ["source"]),
 });

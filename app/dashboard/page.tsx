@@ -46,6 +46,23 @@ export default function DashboardPage() {
   const [statusFilter, setStatusFilter] = useState<Status | undefined>(undefined);
   const [followupFilter, setFollowupFilter] = useState<FollowupFilter>("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [housingSync, setHousingSync] = useState<"idle" | "loading" | "done" | "error">("idle");
+  const [housingSyncResult, setHousingSyncResult] = useState<string | null>(null);
+
+  async function handleHousingSync() {
+    setHousingSync("loading");
+    setHousingSyncResult(null);
+    try {
+      const res = await fetch("/api/housing/sync", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Sync failed");
+      setHousingSyncResult(`${data.created} new lead${data.created !== 1 ? "s" : ""} added${data.skipped > 0 ? `, ${data.skipped} duplicate${data.skipped !== 1 ? "s" : ""} skipped` : ""}`);
+      setHousingSync("done");
+    } catch (err) {
+      setHousingSyncResult(err instanceof Error ? err.message : "Sync failed");
+      setHousingSync("error");
+    }
+  }
 
   const leads = useQuery(api.leads.list, {
     businessType: businessFilter,
@@ -162,14 +179,30 @@ export default function DashboardPage() {
       )}
 
       {/* Top bar */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
         <h1 className="text-xl font-semibold text-gray-900">All Leads</h1>
-        <Link
-          href="/dashboard/leads/new"
-          className="bg-gray-900 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
-        >
-          + Add Lead
-        </Link>
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleHousingSync}
+              disabled={housingSync === "loading"}
+              className="text-sm border border-gray-300 text-gray-700 font-medium px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+            >
+              {housingSync === "loading" ? "Syncing..." : "Sync Housing.com"}
+            </button>
+            {housingSyncResult && (
+              <span className={`text-xs ${housingSync === "error" ? "text-red-500" : "text-green-600"}`}>
+                {housingSyncResult}
+              </span>
+            )}
+          </div>
+          <Link
+            href="/dashboard/leads/new"
+            className="bg-gray-900 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
+          >
+            + Add Lead
+          </Link>
+        </div>
       </div>
 
       {/* Search */}
