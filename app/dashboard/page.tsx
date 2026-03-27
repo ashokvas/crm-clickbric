@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import Link from "next/link";
 import { useState, useMemo } from "react";
@@ -313,10 +313,10 @@ export default function DashboardPage() {
                 <tr>
                   <th className="text-left px-4 py-3 font-medium text-gray-600">Name</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-600">Phone</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-600">Business</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-600">Source</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-600">Status</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-600">Follow-up</th>
+                  <th className="px-4 py-3"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -352,6 +352,9 @@ function followupLabel(date: string | undefined, status: string, filter: Followu
 function LeadRow({ lead, followupFilter }: { lead: Doc<"leads">; followupFilter: FollowupFilter }) {
   const fu = followupLabel(lead.nextFollowup, lead.status, followupFilter);
   const waUrl = generateWhatsAppUrl(lead);
+  const removeLead = useMutation(api.leads.remove);
+  const [confirming, setConfirming] = useState(false);
+
   return (
     <tr
       className="hover:bg-gray-50 cursor-pointer"
@@ -378,9 +381,6 @@ function LeadRow({ lead, followupFilter }: { lead: Doc<"leads">; followupFilter:
         </div>
       </td>
       <td className="px-4 py-3 text-gray-600">
-        {lead.businessType === "real-estate" ? "Real Estate" : "AI Business"}
-      </td>
-      <td className="px-4 py-3 text-gray-600">
         {SOURCE_LABELS[lead.source] ?? lead.source}
       </td>
       <td className="px-4 py-3">
@@ -393,6 +393,31 @@ function LeadRow({ lead, followupFilter }: { lead: Doc<"leads">; followupFilter:
       <td className={`px-4 py-3 text-sm font-medium ${fu.urgent ? "text-red-600" : "text-gray-600"}`}>
         {fu.text}
       </td>
+      <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+        {confirming ? (
+          <span className="flex items-center gap-2 justify-end">
+            <button
+              onClick={() => removeLead({ id: lead._id })}
+              className="text-xs text-red-600 font-medium hover:text-red-800"
+            >
+              Confirm
+            </button>
+            <button
+              onClick={() => setConfirming(false)}
+              className="text-xs text-gray-400 hover:text-gray-600"
+            >
+              Cancel
+            </button>
+          </span>
+        ) : (
+          <button
+            onClick={() => setConfirming(true)}
+            className="text-xs text-gray-300 hover:text-red-400 transition-colors"
+          >
+            Delete
+          </button>
+        )}
+      </td>
     </tr>
   );
 }
@@ -400,6 +425,9 @@ function LeadRow({ lead, followupFilter }: { lead: Doc<"leads">; followupFilter:
 function LeadCard({ lead, followupFilter }: { lead: Doc<"leads">; followupFilter: FollowupFilter }) {
   const fu = followupLabel(lead.nextFollowup, lead.status, followupFilter);
   const waUrl = generateWhatsAppUrl(lead);
+  const removeLead = useMutation(api.leads.remove);
+  const [confirming, setConfirming] = useState(false);
+
   return (
     <div
       className="bg-white rounded-xl border border-gray-200 p-4 cursor-pointer active:bg-gray-50"
@@ -417,10 +445,8 @@ function LeadCard({ lead, followupFilter }: { lead: Doc<"leads">; followupFilter
         </span>
       </div>
       <div className="flex gap-3 text-xs text-gray-400">
-        <span>{lead.businessType === "real-estate" ? "Real Estate" : "AI Business"}</span>
-        <span>·</span>
         <span>{SOURCE_LABELS[lead.source] ?? lead.source}</span>
-        {lead.nextFollowup && (
+        {fu.text && (
           <>
             <span>·</span>
             <span className={fu.urgent ? "text-red-600 font-medium" : ""}>
@@ -432,19 +458,41 @@ function LeadCard({ lead, followupFilter }: { lead: Doc<"leads">; followupFilter
       {lead.requirement && (
         <p className="text-sm text-gray-600 mt-2 line-clamp-2">{lead.requirement}</p>
       )}
-      {waUrl && (
-        <div className="mt-3 pt-3 border-t border-gray-100">
+      <div className="mt-3 pt-3 border-t border-gray-100 flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
+        {waUrl && (
           <a
             href={waUrl}
             target="_blank"
             rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
             className="inline-flex items-center bg-green-500 hover:bg-green-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
           >
             WhatsApp
           </a>
-        </div>
-      )}
+        )}
+        {confirming ? (
+          <span className="flex items-center gap-2 ml-auto">
+            <button
+              onClick={() => removeLead({ id: lead._id })}
+              className="text-xs text-red-600 font-medium hover:text-red-800"
+            >
+              Confirm delete
+            </button>
+            <button
+              onClick={() => setConfirming(false)}
+              className="text-xs text-gray-400 hover:text-gray-600"
+            >
+              Cancel
+            </button>
+          </span>
+        ) : (
+          <button
+            onClick={() => setConfirming(true)}
+            className="text-xs text-gray-300 hover:text-red-400 transition-colors ml-auto"
+          >
+            Delete
+          </button>
+        )}
+      </div>
     </div>
   );
 }
