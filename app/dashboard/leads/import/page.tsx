@@ -93,40 +93,50 @@ export default function ImportPage() {
       return;
     }
 
+    if (allLeads === undefined) {
+      setError("Still loading existing leads -- please wait a moment and try again.");
+      return;
+    }
+
     setImporting(true);
     setError(null);
 
     const existingPhones = new Set(
-      (allLeads ?? []).map((l) => l.phone).filter(Boolean)
+      allLeads.map((l) => l.phone).filter(Boolean)
     );
 
     let created = 0;
     let skipped = 0;
 
-    for (const row of rows) {
-      const name = row[mapping.name]?.trim();
-      if (!name) { skipped++; continue; }
+    try {
+      for (const row of rows) {
+        const name = row[mapping.name]?.trim();
+        if (!name) { skipped++; continue; }
 
-      const phone = mapping.phone ? row[mapping.phone]?.trim() || undefined : undefined;
+        const phone = mapping.phone ? String(row[mapping.phone] ?? "").trim() || undefined : undefined;
 
-      // Deduplicate by phone
-      if (phone && existingPhones.has(phone)) { skipped++; continue; }
+        if (phone && existingPhones.has(phone)) { skipped++; continue; }
 
-      const email = mapping.email ? row[mapping.email]?.trim() || undefined : undefined;
-      const requirement = mapping.requirement ? row[mapping.requirement]?.trim() || undefined : undefined;
+        const email = mapping.email ? String(row[mapping.email] ?? "").trim() || undefined : undefined;
+        const requirement = mapping.requirement ? String(row[mapping.requirement] ?? "").trim() || undefined : undefined;
 
-      await createLead({
-        name,
-        phone,
-        email,
-        requirement,
-        businessType: "real-estate",
-        source: "manual",
-        status: "new",
-      });
+        await createLead({
+          name,
+          phone,
+          email,
+          requirement,
+          businessType: "real-estate",
+          source: "manual",
+          status: "new",
+        });
 
-      if (phone) existingPhones.add(phone);
-      created++;
+        if (phone) existingPhones.add(phone);
+        created++;
+      }
+    } catch (err) {
+      setError(`Import failed: ${err instanceof Error ? err.message : String(err)}`);
+      setImporting(false);
+      return;
     }
 
     setImporting(false);
