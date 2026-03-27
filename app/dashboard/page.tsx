@@ -186,7 +186,7 @@ export default function DashboardPage() {
             <button
               onClick={handleHousingSync}
               disabled={housingSync === "loading"}
-              className="text-sm border border-gray-300 text-gray-700 font-medium px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+              className="text-sm border border-gray-500 text-gray-900 dark:text-white dark:border-gray-400 font-medium px-4 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50"
             >
               {housingSync === "loading" ? "Syncing..." : "Sync Housing.com"}
             </button>
@@ -198,7 +198,7 @@ export default function DashboardPage() {
           </div>
           <Link
             href="/dashboard/leads/import"
-            className="text-sm border border-gray-300 text-gray-700 font-medium px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors"
+            className="text-sm border border-gray-500 text-gray-900 dark:text-white dark:border-gray-400 font-medium px-4 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
           >
             Import CSV
           </Link>
