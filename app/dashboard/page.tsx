@@ -197,6 +197,12 @@ export default function DashboardPage() {
             )}
           </div>
           <Link
+            href="/dashboard/leads/import"
+            className="text-sm border border-gray-300 text-gray-700 font-medium px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            Import CSV
+          </Link>
+          <Link
             href="/dashboard/leads/new"
             className="bg-gray-900 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
           >

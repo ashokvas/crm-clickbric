@@ -45,30 +45,20 @@ Live at: https://crm.clickbric.com
 
 ### To Do
 
-- [ ] **Test webhooks end-to-end**
-  - Connect Housing.com listing to webhook URL: `https://crm.clickbric.com/api/webhooks/housing?secret=YOUR_SECRET`
-  - Connect Google Ads Lead Form to webhook URL: `https://crm.clickbric.com/api/webhooks/google-ads?secret=YOUR_SECRET`
-  - Verify leads appear in dashboard after form submission
+- [ ] **Lead import** -- CSV upload to bulk-import leads, column mapping, deduplication by phone
 
-- [x] **AI-suggested WhatsApp messages**
-  - Claude generates contextual follow-up based on last interaction notes and date
-  - Editable textarea preview before opening WhatsApp
-  - Regenerate and Dismiss options
+---
 
-- [x] **Edit interactions**
-  - Inline edit form on each interaction card (notes, date/time, next follow-up)
+### Done (detailed)
 
-- [ ] **Lead notes / tags**
-  - Free-text notes field on lead detail (separate from interaction log)
-  - Optional: tags for filtering (e.g. "budget-2cr", "3bhk", "urgent")
-
-- [ ] **Search**
-  - Search leads by name, phone, email, or requirement
-  - Simple client-side filter or Convex full-text search
-
-- [ ] **Lead import**
-  - CSV upload to bulk-import leads
-  - Map columns: name, phone, email, requirement, source
+- [x] Phase 1 -- Foundation (auth, leads, dashboard, mobile responsive)
+- [x] Phase 2 -- Webhooks (Housing.com push endpoint, Google Ads)
+- [x] Phase 3 -- WhatsApp quick-send + AI-suggested messages via Claude
+- [x] Phase 4 -- Deployment on Coolify + auto-deploy via GitHub Actions
+- [x] Search -- filter leads by name, phone, email, requirement
+- [x] Edit interactions -- inline edit form on each interaction card
+- [x] Lead notes -- inline editable on lead detail page
+- [x] Housing.com auto-sync -- Convex cron every 15 min, HMAC auth, deduplication
 
 ---
 
