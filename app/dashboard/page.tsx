@@ -334,7 +334,7 @@ export default function DashboardPage() {
 }
 
 function followupLabel(date: string | undefined, status: string, filter: FollowupFilter): { text: string; urgent: boolean } {
-  if (!date || status === "won" || status === "lost") return { text: "-", urgent: false };
+  if (!date || status === "won" || status === "lost") return { text: "", urgent: false };
   const today = dateStr(0);
   const tomorrow = dateStr(1);
   if (date < today) return { text: `Overdue (${date})`, urgent: true };
