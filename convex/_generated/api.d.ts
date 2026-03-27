@@ -8,8 +8,11 @@
  * @module
  */
 
+import type * as crons from "../crons.js";
+import type * as housing from "../housing.js";
 import type * as interactions from "../interactions.js";
 import type * as leads from "../leads.js";
+import type * as syncState from "../syncState.js";
 
 import type {
   ApiFromModules,
@@ -18,8 +21,11 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  crons: typeof crons;
+  housing: typeof housing;
   interactions: typeof interactions;
   leads: typeof leads;
+  syncState: typeof syncState;
 }>;
 
 /**
